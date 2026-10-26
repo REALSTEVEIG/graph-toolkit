@@ -1,0 +1,24 @@
+{
+  "directed": true,
+  "nodes": [],
+  "edges": [
+    {"source": "Windermere", "target": "Kirkstone Pass", "weight": 3.5},
+    {"source": "Kirkstone Pass", "target": "Windermere", "weight": -1.0},
+    {"source": "Ambleside", "target": "Kirkstone Pass", "weight": 3.8},
+    {"source": "Kirkstone Pass", "target": "Ambleside", "weight": -1.2},
+    {"source": "Kirkstone Pass", "target": "Patterdale", "weight": -0.8},
+    {"source": "Patterdale", "target": "Kirkstone Pass", "weight": 4.0},
+    {"source": "Patterdale", "target": "Penrith", "weight": 3.0},
+    {"source": "Penrith", "target": "Patterdale", "weight": 3.2},
+    {"source": "Penrith", "target": "Keswick", "weight": 4.5},
+    {"source": "Keswick", "target": "Penrith", "weight": 4.2},
+    {"source": "Keswick", "target": "Ambleside", "weight": 4.0},
+    {"source": "Ambleside", "target": "Keswick", "weight": 4.1},
+    {"source": "Ambleside", "target": "Windermere", "weight": 1.0},
+    {"source": "Windermere", "target": "Ambleside", "weight": 1.1},
+    {"source": "Windermere", "target": "Kendal", "weight": 2.0},
+    {"source": "Kendal", "target": "Windermere", "weight": 2.3},
+    {"source": "Kendal", "target": "Penrith", "weight": 6.0},
+    {"source": "Penrith", "target": "Kendal", "weight": 5.8}
+  ]
+}

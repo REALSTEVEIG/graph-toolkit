@@ -55,7 +55,169 @@ print(topological_sort(tasks))   # ['design', 'build', 'test']
 ```
 
 Other functions: `bfs`, `dfs`, `bfs_shortest_path`, `dijkstra`, `astar`,
-`connected_components`, `prim_mst`, `reconstruct_path`.
+`connected_components`, `prim_mst`, `reconstruct_path`, and the file
+helpers `load_graph`, `save_graph`, `read_csv`, `write_csv`, `read_json`,
+`write_json`.
+
+## Quick start / end-to-end demo
+
+```bash
+cd graph-toolkit
+python3 -m venv .venv && source .venv/bin/activate
+pip install -e ".[dev]"
+ruff check . && pytest        # lint + 222 tests
+```
+
+The `graphkit` command (also `python -m graphkit`) runs the algorithms on a
+graph file. Three example datasets are bundled in `data/`:
+
+| File | What it is |
+|---|---|
+| `uk_roads.csv` | 24 UK cities with approximate road distances in km (undirected). Belfast and Derry have no road link to Great Britain, so the graph has two components. |
+| `project_tasks.csv` | Task dependencies for shipping a small web app (a DAG: each row means *source must finish before target*). |
+| `lake_district_ev.json` | Energy in kWh for an electric car between Lake District towns (directed). Downhill legs are negative because of regenerative braking, so Dijkstra refuses it and Bellman-Ford is needed. |
+
+Real output:
+
+```console
+$ graphkit info data/uk_roads.csv
+File:          data/uk_roads.csv
+Type:          undirected
+Nodes:         24
+Edges:         35
+Total weight:  4,172
+Weight range:  40 to 235
+Negative edges: 0
+Self-loops:    0
+Isolated nodes: 0
+Components:    2
+
+$ graphkit shortest-path data/uk_roads.csv London Edinburgh
+Shortest path from London to Edinburgh (dijkstra):
+  London -> Cambridge -> Nottingham -> Sheffield -> Leeds -> Newcastle -> Edinburgh
+  Total weight: 689  (6 edges)
+  Legs:
+    London -> Cambridge: 98
+    Cambridge -> Nottingham: 135
+    Nottingham -> Sheffield: 61
+    Sheffield -> Leeds: 55
+    Leeds -> Newcastle: 150
+    Newcastle -> Edinburgh: 190
+
+$ graphkit shortest-path data/uk_roads.csv Plymouth Aberdeen --algorithm bfs
+Shortest path from Plymouth to Aberdeen (bfs):
+  Plymouth -> Exeter -> Bristol -> Birmingham -> Manchester -> Carlisle -> Glasgow -> Aberdeen
+  Edges: 7 (weights ignored)
+
+$ graphkit shortest-path data/lake_district_ev.json Kendal Patterdale --algorithm bellman-ford
+Shortest path from Kendal to Patterdale (bellman-ford):
+  Kendal -> Windermere -> Kirkstone Pass -> Patterdale
+  Total weight: 5  (3 edges)
+  Legs:
+    Kendal -> Windermere: 2.3
+    Windermere -> Kirkstone Pass: 3.5
+    Kirkstone Pass -> Patterdale: -0.8
+
+$ graphkit mst data/uk_roads.csv
+Minimum spanning forest (2 trees): 22 edges, total weight 2,109
+  London - Brighton              86
+  London - Oxford                90
+  London - Cambridge             98
+  Cambridge - Norwich           102
+  Brighton - Southampton        105
+  Oxford - Birmingham           109
+  Birmingham - Nottingham        85
+  Nottingham - Sheffield         61
+  Sheffield - Leeds              55
+  Leeds - York                   40
+  Sheffield - Manchester         61
+  Manchester - Liverpool         56
+  Oxford - Bristol              120
+  Bristol - Cardiff              70
+  Bristol - Exeter              122
+  Exeter - Plymouth              72
+  York - Newcastle              140
+  Newcastle - Carlisle           95
+  Carlisle - Glasgow            155
+  Glasgow - Edinburgh            75
+  Edinburgh - Aberdeen          195
+  Belfast - Derry               117
+
+$ graphkit components data/uk_roads.csv
+2 connected components:
+  1. (22 nodes) London, Cambridge, Oxford, Brighton, Southampton, Birmingham, Norwich, Nottingham, Bristol, Cardiff, Exeter, Plymouth, Manchester, Sheffield, Leeds, Liverpool, Carlisle, York, Newcastle, Edinburgh, Glasgow, Aberdeen
+  2. (2 nodes) Belfast, Derry
+
+$ graphkit toposort data/project_tasks.csv
+Topological order (12 nodes):
+   1. gather-requirements
+   2. set-up-ci
+   3. design-database
+   4. design-ui
+   5. build-api
+   6. write-api-tests
+   7. build-frontend
+   8. write-ui-tests
+   9. staging-deploy
+  10. user-acceptance-testing
+  11. production-release
+  12. announce-launch
+```
+
+Errors are one readable line on stderr with exit code 1 (bad command-line
+usage exits with 2, from `argparse`); there is never a traceback:
+
+```console
+$ graphkit shortest-path data/uk_roads.csv London Belfast
+graphkit: error: no path from 'London' to 'Belfast'
+$ graphkit shortest-path data/uk_roads.csv London Paris
+graphkit: error: node 'Paris' is not in the graph
+$ graphkit shortest-path data/lake_district_ev.json Kendal Patterdale
+graphkit: error: edge ('Kirkstone Pass', 'Windermere') has negative weight -1; dijkstra needs non-negative weights, use --algorithm bellman-ford
+$ graphkit info data/missing.csv
+graphkit: error: cannot read data/missing.csv: No such file or directory
+```
+
+### CLI reference
+
+| Command | Purpose |
+|---|---|
+| `graphkit shortest-path FILE SOURCE TARGET [-a dijkstra\|bellman-ford\|bfs] [-d]` | Cheapest (or fewest-edge, with `bfs`) route. `-d/--directed` treats CSV edges as one-way. |
+| `graphkit mst FILE` | Minimum spanning tree/forest (Prim). Undirected graphs only. |
+| `graphkit components FILE` | Connected components. Undirected graphs only. |
+| `graphkit toposort FILE` | Topological order. The file is always read as directed. |
+| `graphkit info FILE [-d]` | Node/edge counts, weight range, components or DAG check. |
+
+## File formats
+
+`graphkit.load_graph(path)` / `save_graph(graph, path)` pick the format from
+the extension; `read_csv`, `write_csv`, `read_json` and `write_json` are
+also available.
+
+**CSV edge list** - header `source,target,weight` (the weight column is
+optional; an empty weight means 1). A row with an empty target declares an
+isolated node. Blank lines and `#` comments are skipped. CSV cannot record
+direction, so pass `directed=True` (or `--directed`) when needed.
+
+```csv
+source,target,weight
+London,Cambridge,98
+Cambridge,Norwich,102
+```
+
+**JSON** - `directed` and `nodes` are optional; node labels are strings or
+integers.
+
+```json
+{"directed": false,
+ "nodes": ["Belfast", "Derry"],
+ "edges": [{"source": "Belfast", "target": "Derry", "weight": 117}]}
+```
+
+Malformed files raise `GraphFormatError` (a `GraphError`) naming the file
+and, for CSV, the line: wrong header or column count, non-numeric, NaN or
+infinite weights, empty labels, and duplicate edges (which would otherwise
+silently overwrite each other) are all rejected.
 
 ## Algorithms
 
@@ -160,6 +322,7 @@ All derive from `GraphError`:
 | `NegativeCycleError` | Bellman-Ford finds a reachable negative cycle |
 | `GraphCycleError` | topological sort is given a graph with a cycle |
 | `NoPathError` | the target cannot be reached from the source |
+| `GraphFormatError` | a CSV or JSON graph file is malformed |
 
 `ValueError` is raised when an algorithm is used on the wrong kind of graph
 (e.g. topological sort on an undirected graph), and `TypeError`/`ValueError`
@@ -171,22 +334,44 @@ for invalid weights.
 pytest
 ```
 
+CI (GitHub Actions) runs `ruff check .` and `pytest` on Python 3.10 to 3.13.
+
 The tests cover textbook graphs from *Introduction to Algorithms* (CLRS)
 with known answers, a seeded random cross-check of Dijkstra against
 Bellman-Ford on 50 graphs, directed vs. undirected behaviour, disconnected
-graphs, self-loops, single-node graphs, and every error path.
+graphs, self-loops, single-node graphs, and every error path. `test_io.py`
+covers CSV/JSON round trips and malformed files; `test_cli.py` runs the CLI
+end to end, both in-process and as a real `python -m graphkit` subprocess,
+on the bundled data and temporary files, including every error path.
 
 ## Project layout
 
 ```
 graph-toolkit/
-  pyproject.toml
+  pyproject.toml          package metadata, `graphkit` script, ruff/pytest config
+  README.md
+  .github/workflows/
+    ci.yml                lint + tests on Python 3.10-3.13
+  data/
+    uk_roads.csv          UK road network (undirected, km)
+    project_tasks.csv     task-dependency DAG
+    lake_district_ev.json EV energy graph with negative edges (directed)
   src/graphkit/
-    __init__.py         public API
-    graph.py            Graph class
-    traversal.py        BFS, DFS, BFS shortest path, topological sort, components
-    shortest_paths.py   Dijkstra, Bellman-Ford, A*
-    mst.py              Prim's minimum spanning tree
-    exceptions.py       exception hierarchy
+    __init__.py           public API
+    __main__.py           `python -m graphkit`
+    cli.py                argparse command-line interface
+    io.py                 CSV / JSON loading and saving
+    graph.py              Graph class
+    traversal.py          BFS, DFS, BFS shortest path, topological sort, components
+    shortest_paths.py     Dijkstra, Bellman-Ford, A*
+    mst.py                Prim's minimum spanning tree
+    exceptions.py         exception hierarchy
   tests/
+    conftest.py           shared textbook graphs
+    test_graph.py
+    test_traversal.py
+    test_shortest_paths.py
+    test_mst.py
+    test_io.py            file formats
+    test_cli.py           end-to-end CLI tests
 ```

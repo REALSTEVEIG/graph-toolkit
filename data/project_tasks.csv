@@ -1,0 +1,17 @@
+# Tasks for shipping a small web app (directed: each row means source must finish before target).
+# Weight: estimated days of work for the source task (ignored by toposort).
+source,target,weight
+gather-requirements,design-database,2
+gather-requirements,design-ui,2
+design-database,build-api,3
+design-ui,build-frontend,3
+build-api,write-api-tests,5
+build-api,build-frontend,5
+build-frontend,write-ui-tests,6
+set-up-ci,write-api-tests,1
+set-up-ci,write-ui-tests,1
+write-api-tests,staging-deploy,2
+write-ui-tests,staging-deploy,2
+staging-deploy,user-acceptance-testing,1
+user-acceptance-testing,production-release,3
+production-release,announce-launch,1

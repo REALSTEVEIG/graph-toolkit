@@ -6,6 +6,7 @@ import math
 import random
 
 import pytest
+
 from graphkit import (
     Graph,
     NegativeCycleError,
@@ -24,7 +25,7 @@ CLRS_BF = {"s": 0, "t": 2, "x": 4, "y": 7, "z": -2}
 
 
 def _path_cost(g: Graph[object], path: list[object]) -> float:
-    return sum(g.weight(u, v) for u, v in zip(path, path[1:]))
+    return sum(g.weight(u, v) for u, v in zip(path, path[1:], strict=False))
 
 
 # --- Dijkstra ------------------------------------------------------------
@@ -275,7 +276,10 @@ def test_astar_errors() -> None:
     g: Graph[str] = Graph(directed=True)
     g.add_edge("a", "b", 1)
     g.add_node("c")
-    h = lambda u, t: 0
+
+    def h(u: str, t: str) -> float:
+        return 0.0
+
     with pytest.raises(NoPathError):
         astar(g, "a", "c", h)
     with pytest.raises(NodeNotFoundError):

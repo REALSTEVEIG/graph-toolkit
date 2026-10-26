@@ -1,0 +1,39 @@
+# Approximate road distances in km between UK cities (undirected).
+# Figures are rounded driving distances for main routes, for demonstration only.
+# Belfast and Derry are in Northern Ireland, which has no road link to Great Britain.
+source,target,weight
+London,Cambridge,98
+London,Oxford,90
+London,Brighton,86
+London,Southampton,128
+London,Birmingham,190
+London,Norwich,185
+Cambridge,Norwich,102
+Cambridge,Nottingham,135
+Oxford,Birmingham,109
+Oxford,Bristol,120
+Southampton,Brighton,105
+Southampton,Bristol,125
+Bristol,Cardiff,70
+Bristol,Exeter,122
+Bristol,Birmingham,140
+Exeter,Plymouth,72
+Cardiff,Birmingham,180
+Birmingham,Nottingham,85
+Birmingham,Manchester,140
+Nottingham,Sheffield,61
+Sheffield,Manchester,61
+Sheffield,Leeds,55
+Manchester,Liverpool,56
+Manchester,Leeds,70
+Manchester,Carlisle,195
+Leeds,York,40
+Leeds,Newcastle,150
+York,Newcastle,140
+Newcastle,Carlisle,95
+Newcastle,Edinburgh,190
+Carlisle,Glasgow,155
+Glasgow,Edinburgh,75
+Edinburgh,Aberdeen,195
+Glasgow,Aberdeen,235
+Belfast,Derry,117
